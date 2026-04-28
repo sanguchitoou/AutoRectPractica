@@ -6,14 +6,28 @@ const productsSchema = new Schema({
         type: String,
         required: true
     },
-    description: { // la descripción del producto es un string opcional
-        type: String
+    category: { // la categoría del producto
+        type: String,
+        required: true
+    },
+    stock: { // el stock del producto es un número requerido
+        type: Number,
+        required: true
     },
     price: { // el precio del producto es un Decimal128 requerido
         type: Schema.Types.Decimal128,
         required: true
-    }, stock: { // el stock del producto es un número requerido
-        type: Number,
+    }, 
+    status: { // el stock del producto es un número requerido
+        type: String,
+        required: true
+    }, 
+    sku: { // el stock del producto es un número requerido
+        type: String,
+        required: true
+    }, 
+    supplier: { // el stock del producto es un número requerido
+        type: String,
         required: true
     }
 }, {

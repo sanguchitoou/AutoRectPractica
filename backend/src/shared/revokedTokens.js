@@ -1,7 +1,7 @@
 import jsonwebtoken from "jsonwebtoken"; // librería para manejar JSON Web Tokens
 
 const revokedTokens = new Map(); // Mapa para almacenar tokens revocados
-const FIVE_MINUTES_IN_MS = 5 * 60 * 1000;
+const FIVE_MINUTES_IN_MS = 15 * 60 * 1000;
 
 const purgeExpiredRevocations = () => { // Función para eliminar tokens revocados
   const now = Date.now(); // obtenemos el tiempo actual
