@@ -38,7 +38,7 @@ productsController.getProductById = async (req, res) => {
 productsController.postProduct = async (req, res) => {
   try {
     const { name, category, stock, price, status, sku, supplier } = req.validatedBody; // obtenemos los datos
-    const newProduct = new Product({ name, category, stock, price, status, sku, supplier }); // creamos una nueva instancia del producto con los datos recibidos
+    const newProduct = new Product({ name, category, stock, price: price.toString(), status, sku, supplier }); // creamos una nueva instancia del producto con los datos recibidos
     const savedProduct = await newProduct.save(); // guardamos el producto
 
     if (savedProduct) { // si se guardó correctamente, respondemos con un 201

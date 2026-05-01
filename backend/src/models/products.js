@@ -15,7 +15,7 @@ const productsSchema = new Schema({
         required: true
     },
     price: { // el precio del producto es un Decimal128 requerido
-        type: Schema.Types.Decimal128,
+        type: Number,
         required: true
     }, 
     status: { // el stock del producto es un número requerido

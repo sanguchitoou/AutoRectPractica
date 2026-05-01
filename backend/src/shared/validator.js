@@ -327,7 +327,7 @@ export const validateProductPayload = (payload = {}, options = { partial: false 
 	const partial = Boolean(options.partial);
 	const data = {};
 
-	const requiredFields = ["name", "price", "stock"];
+	const requiredFields = ["name", "price", "stock", "category", "status", "sku", "supplier"];
 	if (!partial) {
 		for (const field of requiredFields) {
 			if (payload[field] === undefined || payload[field] === null || payload[field] === "") {
@@ -365,6 +365,30 @@ export const validateProductPayload = (payload = {}, options = { partial: false 
 		}
 	}
 
+	if (payload.category !== undefined) {
+		const category = normalizeString(payload.category);
+		if (!category) errors.push("category no puede ser vacio");
+		else data.category = category;
+	}
+
+	if (payload.status !== undefined) {
+		const status = normalizeString(payload.status);
+		if (!status) errors.push("status es obligatorio");
+		else data.status = status;
+	}
+
+	if (payload.sku !== undefined) {
+		const sku = normalizeString(payload.sku);
+		if (!sku) errors.push("sku es obligatorio");
+		else data.sku = sku;
+	}
+
+	if (payload.supplier !== undefined) {
+		const supplier = normalizeString(payload.supplier);
+		if (!supplier) errors.push("supplier es obligatorio");
+		else data.supplier = supplier;
+	}
+
 	if (partial && Object.keys(data).length === 0) {
 		errors.push("No hay datos validos para actualizar");
 	}
@@ -375,4 +399,3 @@ export const validateProductPayload = (payload = {}, options = { partial: false 
 		data,
 	};
 };
-

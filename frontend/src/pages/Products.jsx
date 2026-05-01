@@ -100,8 +100,8 @@ function Products() {
   const [sku, setSku] = useState("");
   const [supplier, setSupplier] = useState("");
 
-  const [products, setProducts] = useState();
-  const [loading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -121,12 +121,13 @@ function Products() {
   const filteredProducts = useMemo(() => {
     const term = searchText.trim().toLowerCase();
 
+    //Desde aquí da error, ya que es otra variable que estaba declara anates pero la quité
     const matches = products.filter((item) => {
       const bySearch =
         !term ||
         item.name.toLowerCase().includes(term) ||
         item.category.toLowerCase().includes(term) ||
-        item.id.toLowerCase().includes(term) ||
+        item._id.toLowerCase().includes(term) ||
         item.supplier.toLowerCase().includes(term) ||
         item.sku.toLowerCase().includes(term);
 
@@ -193,17 +194,6 @@ function Products() {
     setDeleteTarget(product);
   };
 
-  const confirmDelete = () => {
-    if (!deleteTarget) {
-      return;
-    }
-
-    setProducts((prev) => prev.filter((item) => item.id !== deleteTarget.id));
-    setExpandedRowId((prev) => (prev === deleteTarget.id ? null : prev));
-    setDeleteTarget(null);
-    toast.success("Producto eliminado correctamente");
-  };
-
   const openEditModal = (product) => {
     setEditForm({
       ...product,
@@ -213,6 +203,33 @@ function Products() {
     setIsEditOpen(true);
   };
 
+  //GET FUNCIONAL!!! Se ha utilizado userEffect para cargar los productos desde la API al montar el componente, y se maneja el estado de carga y errores adecuadamente
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(API_PRODUCTS, {
+          credentials: "include",
+        });
+
+        const apiPayload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(apiPayload?.message || "Error al obtener productos");
+        }
+
+        setProducts(apiPayload.data || []);
+      } catch (error) {
+        toast.error(error.message || "Error cargando productos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  //POST FUNCIONAL!!!
   const handleCreateSubmit = async (event) => {
     event.preventDefault();
     const errors = validateProductForm(createForm);
@@ -223,7 +240,6 @@ function Products() {
     }
 
     const payload = {
-      id: `PRD-${String(Date.now()).slice(-6)}`,
       name: createForm.name.trim(),
       category: createForm.category.trim() || "General",
       stock: Number(createForm.stock) || 0,
@@ -232,8 +248,6 @@ function Products() {
       sku: createForm.sku.trim() || "N/A",
       supplier: createForm.supplier.trim() || "N/A",
     };
-
-    setIsCreateOpen(true);
 
     try {
       const response = await fetch(API_PRODUCTS, {
@@ -245,21 +259,23 @@ function Products() {
         body: JSON.stringify(payload),
       });
 
-      const apiPayload = await response.json().catch(() => ({}));
+      const apiPayload = await response.json();
+
       if (!response.ok) {
-        const details = apiPayload?.meta?.errors?.length
-        ? `: ${apiPayload.meta.errors.join(", ")}`
-        : "";
-        throw new Error((apiPayload?.message || "Error agregando producto") + details);
+        throw new Error(apiPayload?.message || "Error agregando producto");
       }
+
+      setProducts((prev) => [...prev, apiPayload.data]);
+      setIsCreateOpen(false);
+      setCreateForm(emptyProductForm);
+      toast.success("Producto creado correctamente");
     } catch (error) {
       toast.error(error.message || "No se pudo registrar el producto");
-    } finally {
-      setIsCreateOpen(false);
     }
   };
 
-  const handleEditSubmit = (event) => {
+  //PUT FUNCIONAL!!!
+  const handleEditSubmit = async (event) => {
     event.preventDefault();
     const errors = validateProductForm(editForm);
     setEditErrors(errors);
@@ -268,26 +284,70 @@ function Products() {
       return;
     }
 
-    setProducts((prev) =>
-      prev.map((item) =>
-        item.id === editForm.id
-          ? {
-              ...item,
-              name: editForm.name.trim(),
-              category: editForm.category.trim() || "General",
-              stock: Number(editForm.stock) || 0,
-              price: Number(editForm.price) || 0,
-              status: editForm.status,
-              sku: editForm.sku.trim() || "N/A",
-              supplier: editForm.supplier.trim() || "N/A",
-            }
-          : item,
-      ),
-    );
+    const payload = {
+      name: editForm.name.trim(),
+      category: editForm.category.trim() || "General",
+      stock: Number(editForm.stock) || 0,
+      price: Number(editForm.price) || 0,
+      status: editForm.status,
+      sku: editForm.sku.trim() || "N/A",
+      supplier: editForm.supplier.trim() || "N/A",
+    };
 
-    setIsEditOpen(false);
-    setEditErrors({});
-    toast.success("Producto actualizado correctamente");
+    try {
+      const response = await fetch(`${API_PRODUCTS}/${editForm._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const apiPayload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(apiPayload?.message || "Error actualizando producto");
+      }
+
+      setProducts((prev) =>
+        prev.map((item) =>
+          item._id === editForm._id ? apiPayload.data : item
+        )
+      );
+
+      setIsEditOpen(false);
+      toast.success("Producto actualizado correctamente");
+    } catch (error) {
+      toast.error(error.message || "No se pudo actualizar");
+    }
+  };
+
+  //DELETE FUNCIONAL!!! 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      const response = await fetch(`${API_PRODUCTS}/${deleteTarget._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const apiPayload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(apiPayload?.message || "Error eliminando producto");
+      }
+
+      setProducts((prev) =>
+        prev.filter((item) => item._id !== deleteTarget._id)
+      );
+
+      setDeleteTarget(null);
+      toast.success("Producto eliminado correctamente");
+    } catch (error) {
+      toast.error(error.message || "No se pudo eliminar");
+    }
   };
 
   return (
@@ -442,8 +502,8 @@ function Products() {
                   const cardinalId = (currentPage - 1) * rowsPerPage + index + 1;
 
                   return (
-                    <Fragment key={`${item.id}-group`}>
-                      <TableRow className={`border-white/10 hover:bg-white/4 ${expandedRowId === item.id ? "bg-white/4" : ""}`}>
+                    <Fragment key={`${item._id}-group`}>
+                      <TableRow className={`border-white/10 hover:bg-white/4 ${expandedRowId === item._id ? "bg-white/4" : ""}`}>
                         <TableCell>
                           <Checkbox aria-label={`Seleccionar ${item.name}`} />
                         </TableCell>
@@ -472,9 +532,9 @@ function Products() {
                               variant="ghost"
                               size="icon-sm"
                               className="h-8 w-8 rounded-md border border-white/15 bg-transparent text-white/70 hover:bg-white/10 hover:text-white"
-                              onClick={() => toggleExpandRow(item.id)}
+                              onClick={() => toggleExpandRow(item._id)}
                             >
-                              {expandedRowId === item.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              {expandedRowId === item._id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
                             <Button
                               type="button"
@@ -498,7 +558,7 @@ function Products() {
                         </TableCell>
                       </TableRow>
 
-                      {expandedRowId === item.id ? (
+                      {expandedRowId === item._id ? (
                         <TableRow className="border-white/10 bg-white/4">
                           <TableCell colSpan={8}>
                             <div className="grid gap-2 sm:grid-cols-3">
